@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Controle Financeiro Mês a Mês — Editável</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="theme-color" content="#0D6B56">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Minhas Finanças">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+:root {
+  --bg: #F2F5F4;
+  --surface: #FFFFFF;
+  --surface-alt: #F8FAF9;
+  --fg: #15201D;
+  --muted: #58675F;
+  --line: #DAE3DF;
+  --accent: #0D6B56;
+  --accent-fg: #FFFFFF;
+  --accent-soft: #E1EFEA;
+  --pos: #13765A;
+  --neg: #B3261E;
+  --neg-soft: #FBE8E5;
+  --warn: #7F4E00;
+  --warn-soft: #FFF0D2;
+  --info-soft: #E6EEF8;
+  --info: #234E85;
+  --series-a: #0D6B56;
+  --series-b: #C26A00;
+  --font-display: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1412; --surface: #151F1D; --surface-alt: #1A2724; --fg: #E7F0ED; --muted: #94A7A1; --line: #25332F;
+    --accent: #55C7A4; --accent-fg: #07211A; --accent-soft: #163029;
+    --pos: #62D2AC; --neg: #FF9A90; --neg-soft: #3A1E1C;
+    --warn: #F2BD62; --warn-soft: #35280F; --info-soft: #172640; --info: #A9C6F2;
+    --series-a: #55C7A4; --series-b: #F0A64A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1412; --surface: #151F1D; --surface-alt: #1A2724; --fg: #E7F0ED; --muted: #94A7A1; --line: #25332F;
+  --accent: #55C7A4; --accent-fg: #07211A; --accent-soft: #163029;
+  --pos: #62D2AC; --neg: #FF9A90; --neg-soft: #3A1E1C;
+  --warn: #F2BD62; --warn-soft: #35280F; --info-soft: #172640; --info: #A9C6F2;
+  --series-a: #55C7A4; --series-b: #F0A64A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-block: 0 3.5rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--bg);
+}
+.wrap { max-width: 720px; margin-inline: auto; }
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); padding-block: 0.75rem 0.5rem;
+}
+.top-row { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+.top-actions { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.icon-btn {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); font: 500 0.78rem var(--font-body);
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.icon-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+.icon-btn.danger:hover { background: var(--neg-soft); border-color: var(--neg); color: var(--neg); }
+
+.months { display: flex; gap: 0.45rem; overflow-x: auto; scrollbar-width: none; padding-bottom: 0.25rem; align-items: center; }
+.months::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.48rem 0.8rem; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); font: 600 0.84rem var(--font-body); cursor: pointer;
+}
+.chip[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--neg); }
+.chip[aria-current="true"] .dot { background: var(--accent-fg); }
+.chip-add {
+  flex: 0 0 auto; padding: 0.45rem 0.75rem; border-radius: 999px; border: 1px dashed var(--accent);
+  background: transparent; color: var(--accent); font: 600 0.82rem var(--font-body); cursor: pointer;
+}
+.chip-add:hover { background: var(--accent-soft); }
+
+main { display: flex; flex-direction: column; gap: 1rem; padding-top: 0.5rem; }
+.hero, .card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1.05rem;
+}
+.eyebrow { margin: 0; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.big { margin: 0.25rem 0 0; font-family: var(--font-display); font-weight: 700; font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.big.pos { color: var(--pos); } .big.neg { color: var(--neg); }
+.big-label { margin: 0.15rem 0 0.9rem; color: var(--muted); font-size: 0.85rem; }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem 1rem; margin: 0; padding-top: 0.9rem; border-top: 1px solid var(--line); }
+@media (min-width: 520px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { min-width: 0; }
+.stat dt { font-size: 0.74rem; color: var(--muted); }
+.stat dd { margin: 0.12rem 0 0; font-family: var(--font-display); font-weight: 600; font-size: 1.02rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat dd.neg { color: var(--neg); }
+.stat dd.pos { color: var(--pos); }
+
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; flex-wrap: wrap; }
+h2 { font-family: var(--font-display); font-size: 1.02rem; font-weight: 600; margin: 0; }
+.sub { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; margin-bottom: 0.45rem; }
+.bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+@media (prefers-reduced-motion: no-preference) { .bar span { transition: width 0.25s ease; } }
+
+.filters { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.55rem; }
+.f-btn {
+  padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface-alt); color: var(--muted); font: 500 0.75rem var(--font-body); cursor: pointer;
+}
+.f-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.badge {
+  display: inline-block; padding: 0.1rem 0.42rem; border-radius: 6px; font-size: 0.68rem; font-weight: 600;
+  background: var(--surface-alt); color: var(--muted); border: 1px solid var(--line); margin-left: 0.4rem; vertical-align: middle;
+}
+.badge.pontual { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.badge.divida { background: var(--neg-soft); color: var(--neg); border-color: transparent; }
+
+.list { list-style: none; margin: 0.35rem 0 0; padding: 0; }
+.row { display: flex; align-items: center; gap: 0.5rem; border-top: 1px solid var(--line); padding: 0.55rem 0; }
+.row:first-child { border-top: 0; }
+.row label { display: flex; align-items: center; gap: 0.65rem; flex: 1 1 auto; min-width: 0; cursor: pointer; border-radius: 8px; }
+.row input[type="checkbox"] { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; accent-color: var(--accent); margin: 0; }
+.row .name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; font-size: 0.92rem; }
+.row .name small { display: block; color: var(--muted); font-size: 0.76rem; margin-top: 0.1rem; }
+.row .val { flex: 0 0 auto; font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; font-size: 0.94rem; }
+.row.done .name, .row.done .val { color: var(--muted); text-decoration: line-through; }
+.act-btn {
+  background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0.25rem 0.4rem;
+  border-radius: 6px; font-size: 0.85rem; line-height: 1; flex: 0 0 auto;
+}
+.act-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.act-btn.del:hover { background: var(--neg-soft); color: var(--neg); }
+
+.plain { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.55rem 0; border-top: 1px solid var(--line); font-size: 0.92rem; }
+.plain:first-of-type { border-top: 0; }
+.plain span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.plain span:last-child { font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+
+.add-form {
+  display: grid; grid-template-columns: 1fr 115px auto; gap: 0.45rem;
+  margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--line);
+}
+.add-form.saidas-grid { grid-template-columns: 1fr 105px 105px auto; }
+@media (max-width: 520px) {
+  .add-form, .add-form.saidas-grid { grid-template-columns: 1fr 1fr; }
+  .add-form input[type="text"] { grid-column: 1 / -1; }
+  .add-form button { grid-column: 1 / -1; }
+}
+.inp {
+  width: 100%; padding: 0.48rem 0.65rem; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface-alt); color: var(--fg); font: 400 0.85rem var(--font-body);
+}
+.btn-primary {
+  padding: 0.48rem 0.85rem; border-radius: 8px; border: none;
+  background: var(--accent); color: var(--accent-fg); font: 600 0.83rem var(--font-body); cursor: pointer;
+}
+.btn-primary:hover { opacity: 0.92; }
+
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+@media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; } }
+.box-info {
+  background: var(--surface-alt); border: 1px solid var(--line); border-radius: 10px; padding: 0.75rem 0.85rem;
+}
+.box-info h3 { margin: 0 0 0.45rem; font-family: var(--font-display); font-size: 0.88rem; font-weight: 600; color: var(--accent); }
+.mini-row { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.82rem; padding: 0.22rem 0; border-bottom: 1px solid var(--line); }
+.mini-row:last-child { border-bottom: 0; }
+.mini-row span:last-child { font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mini-row.total { font-weight: 700; color: var(--pos); padding-top: 0.38rem; margin-top: 0.15rem; border-top: 1px solid var(--line); border-bottom: 0; }
+.sim-controls {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem;
+  background: var(--surface-alt); border: 1px solid var(--line); border-radius: 10px; padding: 0.75rem; margin-bottom: 0.75rem;
+}
+@media (max-width: 560px) { .sim-controls { grid-template-columns: 1fr 1fr; } }
+.field label { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.2rem; font-weight: 500; }
+.btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
+.btn-sec {
+  padding: 0.45rem 0.75rem; border-radius: 8px; border: 1px solid var(--accent);
+  background: var(--accent-soft); color: var(--accent); font: 600 0.8rem var(--font-body); cursor: pointer;
+}
+.btn-sec:hover { opacity: 0.9; }
+
+.chart { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--muted); font: 500 10px var(--font-body); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .zero { stroke: var(--muted); stroke-width: 1; }
+.chart .a { stroke: var(--series-a); fill: none; stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+.chart .b { stroke: var(--series-b); fill: none; stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+.chart .pa { fill: var(--series-a); stroke: var(--surface); stroke-width: 2; }
+.chart .pb { fill: var(--series-b); stroke: var(--surface); stroke-width: 2; }
+.chart .sel { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; margin-top: 0.5rem; font-size: 0.82rem; }
+.legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-variant-numeric: tabular-nums; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.legend .a i { background: var(--series-a); } .legend .b i { background: var(--series-b); }
+.note { margin: 0.6rem 0 0; font-size: 0.78rem; color: var(--muted); }
+.empty-box { text-align: center; padding: 1.2rem 0.5rem; color: var(--muted); font-size: 0.88rem; }
+footer { margin-top: 1.5rem; font-size: 0.78rem; color: var(--muted); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="top-row">
+      <h1>Minhas Finanças</h1>
+      <div class="top-actions">
+        <button type="button" class="icon-btn" id="btn-install" style="display:none;background:var(--accent);color:var(--accent-fg);border-color:var(--accent)" title="Instalar aplicativo no aparelho">📲 Instalar App</button>
+        <button type="button" class="icon-btn" id="btn-theme" title="Alternar tema claro/escuro">🌓 Tema</button>
+        <button type="button" class="icon-btn" id="btn-export" title="Baixar backup JSON">⬇ Exportar</button>
+        <button type="button" class="icon-btn" id="btn-import" title="Carregar backup JSON">⬆ Importar</button>
+        <input type="file" id="file-import" accept=".json,application/json" style="display:none">
+        <button type="button" class="icon-btn danger" id="btn-reset" title="Zerar todos os dados">🗑 Zerar</button>
+      </div>
+    </div>
+    <nav class="months" id="months" aria-label="Escolha o mês"></nav>
+  </header>
+  <main id="app"></main>
+  <footer>
+    <span>Modelo 100% editável • Dados salvos apenas no seu aparelho.</span>
+    <span class="stamp">Soma acumulada automática</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'minhas_financas_modelo_limpo_v2';
+  var PAID_KEY = 'minhas_financas_pagos_limpo_v1';
+  var THEME_KEY = 'minhas_financas_tema_v1';
+
+  var MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var ABREV = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  var brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  var fmt = function (v) { return brl.format(v || 0); };
+
+  function buildInitialMonths() {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth(); // 0-indexed
+    var list = [];
+    for (var i = 0; i < 12; i++) {
+      var dt = new Date(y, m + i, 1);
+      var key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+      list.push({
+        key: key,
+        entradas: [],
+        saidas: [],
+        aporte: 0
+      });
+    }
+    return list;
+  }
+
+  function defaultWork() {
+    return {
+      salarioBase: 0,
+      divisorMensal: 200,
+      intervaloMin: 60,
+      he50Horas: 0,
+      he100Horas: 0,
+      feriadoDias: 0,
+      meses13: 12,
+      tipoParcela13: '1_parcela'
+    };
+  }
+
+  function defaultState() {
+    return {
+      saldoInicial: 0,
+      metaReserva: 10000,
+      work: defaultWork(),
+      months: buildInitialMonths()
+    };
+  }
+
+  var DATA = loadState();
+  var paid = loadPaid();
+  var sel = 0;
+  var filterTipo = 'Todos';
+
+  function loadState() {
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return defaultState();
+  }
+  function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch (e) {}
+  }
+  function loadPaid() {
+    try {
+      var p = localStorage.getItem(PAID_KEY);
+      if (p) return JSON.parse(p);
+    } catch (e) {}
+    return {};
+  }
+  function savePaid() {
+    try { localStorage.setItem(PAID_KEY, JSON.stringify(paid)); } catch (e) {}
+  }
+
+  function recalculateAll() {
+    var saldoAnt = Number(DATA.saldoInicial) || 0;
+    var reservaAnt = 0;
+    var menorSaldo = Infinity;
+    var totalSaidasPeriodo = 0;
+
+    DATA.months.forEach(function (m) {
+      m.totEntradas = Number(m.entradas.reduce(function (acc, e) { return acc + (Number(e.valor) || 0); }, 0).toFixed(2));
+      m.totSaidas = Number(m.saidas.reduce(function (acc, s) { return acc + (Number(s.valor) || 0); }, 0).toFixed(2));
+      m.sobra = Number((m.totEntradas - m.totSaidas).toFixed(2));
+      var aporte = Number(m.aporte) || 0;
+      m.saldo = Number((saldoAnt + m.sobra - aporte).toFixed(2));
+      m.reserva = Number((reservaAnt + aporte).toFixed(2));
+      m.total = Number((m.saldo + m.reserva).toFixed(2));
+      if (m.saldo < menorSaldo) menorSaldo = m.saldo;
+      totalSaidasPeriodo += m.totSaidas;
+      saldoAnt = m.saldo;
+      reservaAnt = m.reserva;
+    });
+
+    DATA.menorSaldo = menorSaldo === Infinity ? 0 : menorSaldo;
+    DATA.totalSaidasPeriodo = Number(totalSaidasPeriodo.toFixed(2));
+  }
+
+  recalculateAll();
+
+  function h(tag, props) {
+    var e = document.createElement(tag);
+    if (props) Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (k === 'class') e.className = v;
+      else if (k === 'text') e.textContent = v;
+      else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, '');
+      else if (v !== false && v != null) e.setAttribute(k, v);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var kids = [].concat(arguments[i]);
+      kids.forEach(function (kid) {
+        if (kid == null || kid === false) return;
+        e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+      });
+    }
+    return e;
+  }
+
+  function monthName(m) { var p = m.key.split('-'); return MESES[+p[1] - 1] + ' de ' + p[0]; }
+  function chipLabel(m) { var p = m.key.split('-'); return ABREV[+p[1] - 1] + '/' + p[0].slice(2); }
+
+  function togglePaid(key) {
+    if (paid[key]) delete paid[key]; else paid[key] = true;
+    savePaid();
+    render();
+  }
+
+  function addNextMonth() {
+    var last = DATA.months[DATA.months.length - 1];
+    var p = last.key.split('-');
+    var dt = new Date(Number(p[0]), Number(p[1]), 1);
+    var nextKey = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+    DATA.months.push({ key: nextKey, entradas: [], saidas: [], aporte: 0 });
+    recalculateAll();
+    saveState();
+    select(DATA.months.length - 1, true);
+  }
+
+  function stat(k, v, cls) {
+    return h('div', { class: 'stat' }, h('dt', { text: k }), h('dd', { class: cls || '', text: v }));
+  }
+
+  function hero(m, idx) {
+    var posSaldo = m.saldo >= 0;
+    var posMes = m.sobra >= 0;
+    var saldoAnt = idx === 0 ? (Number(DATA.saldoInicial) || 0) : DATA.months[idx - 1].saldo;
+    var resultText = (posMes ? '+' : '') + fmt(m.sobra);
+
+    return h('section', { class: 'hero' },
+      h('p', { class: 'eyebrow', text: monthName(m) + ' • Saldo Acumulado' }),
+      h('p', { class: 'big ' + (posSaldo ? 'pos' : 'neg'), text: fmt(m.saldo) }),
+      h('p', { class: 'big-label', text: 'saldo acumulado em conta (vindo do mês anterior + entradas − saídas − reserva)' }),
+      h('dl', { class: 'stats' },
+        stat('Vindo do mês ant.', fmt(saldoAnt)),
+        stat('Entradas do mês', fmt(m.totEntradas), 'pos'),
+        stat('Saídas' + (m.aporte > 0 ? ' + Reserva' : ''), fmt(m.totSaidas + (Number(m.aporte) || 0))),
+        stat('Balanço só do mês', resultText, posMes ? 'pos' : 'neg')));
+  }
+
+  function incomes(m, idx) {
+    var saldoAnt = idx === 0 ? (Number(DATA.saldoInicial) || 0) : DATA.months[idx - 1].saldo;
+    var totalDisponivel = saldoAnt + m.totEntradas;
+
+    var inpNome = h('input', { type: 'text', class: 'inp', placeholder: 'Descrição (ex: Salário, Renda extra)' });
+    var inpVal = h('input', { type: 'number', step: '0.01', class: 'inp', placeholder: 'Valor (R$)' });
+    var formAdd = h('form', {
+      class: 'add-form',
+      onsubmit: function (ev) {
+        ev.preventDefault();
+        var nome = inpNome.value.trim();
+        var val = parseFloat(inpVal.value);
+        if (!nome || isNaN(val) || val <= 0) return;
+        m.entradas.push({ nome: nome, valor: Number(val.toFixed(2)) });
+        recalculateAll(); saveState(); render();
+      }
+    }, inpNome, inpVal, h('button', { type: 'submit', class: 'btn-primary', text: '+ Entrada' }));
+
+    var topRow;
+    if (idx === 0) {
+      var inpSaldoIni = h('input', {
+        type: 'number', step: '0.01', class: 'inp', style: 'width:130px;text-align:right;font-weight:600',
+        value: DATA.saldoInicial,
+        onchange: function (e) {
+          DATA.saldoInicial = parseFloat(e.target.value) || 0;
+          recalculateAll(); saveState(); render();
+        }
+      });
+      topRow = h('div', { class: 'plain', style: 'background:var(--accent-soft);margin-inline:-0.5rem;padding-inline:0.5rem;border-radius:8px;color:var(--accent)' },
+        h('span', { style: 'font-weight:600', text: 'Saldo inicial em conta (editável)' }),
+        inpSaldoIni
+      );
+    } else {
+      topRow = h('div', { class: 'plain', style: 'background:var(--accent-soft);margin-inline:-0.5rem;padding-inline:0.5rem;border-radius:8px;color:var(--accent)' },
+        h('span', { style: 'font-weight:600', text: '↳ Saldo acumulado de ' + chipLabel(DATA.months[idx - 1]) }),
+        h('span', { style: 'font-family:var(--font-display);font-weight:700', text: fmt(saldoAnt) })
+      );
+    }
+
+    return h('section', { class: 'card' },
+      h('div', { class: 'card-head' },
+        h('h2', { text: 'Entradas & Saldo Disponível' }),
+        h('span', { class: 'sub', text: 'Total disponível: ' + fmt(totalDisponivel) })
+      ),
+      topRow,
+      m.entradas.length ? m.entradas.map(function (e, eIdx) {
+        return h('div', { class: 'plain' },
+          h('span', { text: e.nome }),
+          h('div', { style: 'display:flex;align-items:center;gap:0.35rem' },
+            h('span', { style: 'font-family:var(--font-display);font-weight:600;font-variant-numeric:tabular-nums', text: fmt(e.valor) }),
+            h('button', {
+              type: 'button', class: 'act-btn', title: 'Editar valor', text: '✎',
+              onclick: function () {
+                var novo = prompt('Novo valor para "' + e.nome + '":', e.valor);
+                if (novo !== null && !isNaN(parseFloat(novo))) {
+                  e.valor = Number(parseFloat(novo).toFixed(2));
+                  recalculateAll(); saveState(); render();
+                }
+              }
+            }),
+            h('button', {
+              type: 'button', class: 'act-btn del', title: 'Remover entrada', text: '✕',
+              onclick: function () { m.entradas.splice(eIdx, 1); recalculateAll(); saveState(); render(); }
+            })
+          )
+        );
+      }) : h('p', { class: 'note', text: 'Nenhuma entrada cadastrada neste mês. Adicione abaixo.' }),
+      formAdd
+    );
+  }
+
+  function payables(m) {
+    var tipos = ['Todos', 'Fixa', 'Parcelada', 'Variável', 'Dívida', 'Pontual'];
+    var allItems = m.saidas.slice().sort(function (x, y) { return y.valor - x.valor; });
+    var items = filterTipo === 'Todos' ? allItems : allItems.filter(function (i) { return i.tipo === filterTipo; });
+
+    var total = 0, done = 0;
+    allItems.forEach(function (i) { total += i.valor; if (paid[m.key + '_' + i.id]) done += i.valor; });
+    var bar = h('div', { class: 'bar', 'aria-hidden': 'true' }, h('span'));
+    bar.firstChild.style.width = (total ? Math.round(done / total * 100) : 0) + '%';
+
+    var filterBar = h('div', { class: 'filters' }, tipos.map(function (t) {
+      return h('button', {
+        type: 'button',
+        class: 'f-btn' + (filterTipo === t ? ' active' : ''),
+        text: t,
+        onclick: function () { filterTipo = t; render(); }
+      });
+    }));
+
+    var inpNome = h('input', { type: 'text', class: 'inp', placeholder: 'Nova despesa (ex: Aluguel, Luz, Cartão)' });
+    var selTipo = h('select', { class: 'inp' },
+      ['Fixa', 'Parcelada', 'Variável', 'Dívida', 'Pontual'].map(function (t) { return h('option', { value: t, text: t }); })
+    );
+    var inpVal = h('input', { type: 'number', step: '0.01', class: 'inp', placeholder: 'Valor (R$)' });
+    var formAdd = h('form', {
+      class: 'add-form saidas-grid',
+      onsubmit: function (ev) {
+        ev.preventDefault();
+        var nome = inpNome.value.trim();
+        var val = parseFloat(inpVal.value);
+        if (!nome || isNaN(val) || val <= 0) return;
+        m.saidas.push({ id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), nome: nome, tipo: selTipo.value, valor: Number(val.toFixed(2)) });
+        recalculateAll();
+        saveState();
+        render();
+      }
+    }, inpNome, selTipo, inpVal, h('button', { type: 'submit', class: 'btn-primary', text: '+ Despesa' }));
+
+    var copyBtn = sel > 0 && DATA.months[sel - 1].saidas.length > 0 ? h('button', {
+      type: 'button',
+      class: 'icon-btn',
+      text: '📋 Copiar contas de ' + chipLabel(DATA.months[sel - 1]),
+      onclick: function () {
+        var prev = DATA.months[sel - 1].saidas;
+        prev.forEach(function (pItem) {
+          m.saidas.push({
+            id: 'copy_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            nome: pItem.nome,
+            tipo: pItem.tipo,
+            valor: pItem.valor
+          });
+        });
+        recalculateAll(); saveState(); render();
+      }
+    }) : null;
+
+    return h('section', { class: 'card' },
+      h('div', { class: 'card-head' },
+        h('h2', { text: 'Saídas & Contas a Pagar' }),
+        h('div', { style: 'display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap' },
+          copyBtn,
+          h('span', { class: 'sub', text: fmt(done) + ' de ' + fmt(total) + ' pagos' })
+        )
+      ),
+      bar,
+      filterBar,
+      items.length ? h('ul', { class: 'list' }, items.map(function (i) {
+        var key = m.key + '_' + i.id, on = !!paid[key];
+        var badgeCls = 'badge' + (i.tipo === 'Pontual' ? ' pontual' : (i.tipo === 'Dívida' ? ' divida' : ''));
+        return h('li', { class: 'row' + (on ? ' done' : '') },
+          h('label', { for: 'chk-' + key },
+            h('input', { type: 'checkbox', id: 'chk-' + key, checked: on, onchange: function () { togglePaid(key); } }),
+            h('span', { class: 'name' },
+              i.nome,
+              h('span', { class: badgeCls, text: i.tipo })
+            ),
+            h('span', { class: 'val', text: fmt(i.valor) })
+          ),
+          h('button', {
+            type: 'button', class: 'act-btn', title: 'Editar valor', text: '✎',
+            onclick: function () {
+              var novo = prompt('Novo valor para "' + i.nome + '":', i.valor);
+              if (novo !== null && !isNaN(parseFloat(novo))) {
+                i.valor = Number(parseFloat(novo).toFixed(2));
+                recalculateAll(); saveState(); render();
+              }
+            }
+          }),
+          h('button', {
+            type: 'button', class: 'act-btn del', title: 'Remover despesa', text: '✕',
+            onclick: function () {
+              m.saidas = m.saidas.filter(function (x) { return x.id !== i.id; });
+              recalculateAll(); saveState(); render();
+            }
+          })
+        );
+      })) : h('div', { class: 'empty-box', text: 'Nenhuma despesa cadastrada neste mês. Use o formulário abaixo para adicionar.' }),
+      formAdd
+    );
+  }
+
+  function calcWork5x2(w) {
+    var base = Number(w.salarioBase) || 0;
+    var divisor = Number(w.divisorMensal) || 200; // 200h (nova regra 40h/sem 5x2) ou 220h (44h/sem)
+    var intervaloMin = Number(w.intervaloMin) != null ? Number(w.intervaloMin) : 60;
+    // Horário 06:00 às 18:48 = 12h48m (768 min) brutos - intervalo
+    var minDiariosLiq = Math.max(0, 768 - intervaloMin);
+    var horasDiariasLiq = minDiariosLiq / 60;
+    var jornadaSemanalPadrao = divisor === 220 ? 44 : (divisor === 180 ? 36 : 40);
+    var horasDiariasPadrao = jornadaSemanalPadrao / 5;
+    var excedenteDiarioHoras = Math.max(0, horasDiariasLiq - horasDiariasPadrao);
+
+    var valorHora = divisor > 0 ? (base / divisor) : 0;
+    var he50Qtd = Number(w.he50Horas) || 0;
+    var he100Qtd = Number(w.he100Horas) || 0;
+    var feriadoDias = Number(w.feriadoDias) || 0;
+
+    // Feriado trabalhado em escala 5x2: dia em dobro (100%) sobre as horas líquidas do turno + opção de horas extras 100% avulsas
+    var horasFeriadoTurno = feriadoDias * horasDiariasLiq;
+    var totalHoras100 = he100Qtd + horasFeriadoTurno;
+
+    var valorHe50 = he50Qtd * valorHora * 1.5;
+    var valorHe100Feriado = totalHoras100 * valorHora * 2.0;
+    var totalExtrasFeriado = valorHe50 + valorHe100Feriado;
+
+    // 13º Salário (proporcional aos meses trabalhados no ano: 1 a 12)
+    var meses13 = Math.min(12, Math.max(1, Number(w.meses13) || 12));
+    var decimoBruto = base * (meses13 / 12);
+    var inss13 = Math.min(decimoBruto * 0.14, 988.09);
+    var baseIrrf13 = Math.max(0, decimoBruto - inss13);
+    var irrf13 = baseIrrf13 > 4664.68 ? Math.max(0, baseIrrf13 * 0.275 - 908.73) : 0;
+    var decimo1Parcela = decimoBruto * 0.5;
+    var decimo2Parcela = Math.max(0, decimoBruto - decimo1Parcela - inss13 - irrf13);
+    var decimoIntegralLiq = Math.max(0, decimoBruto - inss13 - irrf13);
+
+    var decimoSelecionado = w.tipoParcela13 === '2_parcela' ? decimo2Parcela : (w.tipoParcela13 === 'integral' ? decimoIntegralLiq : decimo1Parcela);
+
+    return {
+      base: base,
+      divisor: divisor,
+      horasDiariasLiq: horasDiariasLiq,
+      horasDiariasPadrao: horasDiariasPadrao,
+      excedenteDiarioHoras: excedenteDiarioHoras,
+      valorHora: valorHora,
+      he50Qtd: he50Qtd,
+      totalHoras100: totalHoras100,
+      valorHe50: valorHe50,
+      valorHe100Feriado: valorHe100Feriado,
+      totalExtrasFeriado: totalExtrasFeriado,
+      meses13: meses13,
+      decimoBruto: decimoBruto,
+      decimo1Parcela: decimo1Parcela,
+      decimo2Parcela: decimo2Parcela,
+      decimoIntegralLiq: decimoIntegralLiq,
+      decimoSelecionado: decimoSelecionado
+    };
+  }
+
+  function formatHours(hDec) {
+    var hrs = Math.floor(hDec);
+    var mins = Math.round((hDec - hrs) * 60);
+    if (mins === 60) { hrs += 1; mins = 0; }
+    return hrs + 'h' + String(mins).padStart(2, '0');
+  }
+
+  function workCalcCard(m) {
+    if (!DATA.work) DATA.work = defaultWork();
+    var w = DATA.work;
+    var res = calcWork5x2(w);
+
+    var inpBase = h('input', {
+      type: 'number', step: '0.01', class: 'inp', placeholder: '0,00', value: w.salarioBase || '',
+      onchange: function (e) { w.salarioBase = parseFloat(e.target.value) || 0; saveState(); render(); }
+    });
+    var selRegra = h('select', {
+      class: 'inp',
+      onchange: function (e) { w.divisorMensal = parseInt(e.target.value, 10) || 200; saveState(); render(); }
+    },
+      h('option', { value: '200', selected: w.divisorMensal === 200, text: 'Nova Regra 5x2 — 40h/sem (Div. 200h)' }),
+      h('option', { value: '180', selected: w.divisorMensal === 180, text: 'Nova Regra 5x2 — 36h/sem (Div. 180h)' }),
+      h('option', { value: '220', selected: w.divisorMensal === 220, text: 'CLT Tradicional — 44h/sem (Div. 220h)' })
+    );
+    var selIntervalo = h('select', {
+      class: 'inp',
+      onchange: function (e) { w.intervaloMin = parseInt(e.target.value, 10); saveState(); render(); }
+    },
+      h('option', { value: '60', selected: w.intervaloMin === 60, text: '1h intervalo (11h48 trab.)' }),
+      h('option', { value: '90', selected: w.intervaloMin === 90, text: '1h30 intervalo (11h18 trab.)' }),
+      h('option', { value: '120', selected: w.intervaloMin === 120, text: '2h intervalo (10h48 trab.)' })
+    );
+    var inpHe50 = h('input', {
+      type: 'number', step: '0.5', min: '0', class: 'inp', placeholder: '0', value: w.he50Horas || '',
+      onchange: function (e) { w.he50Horas = parseFloat(e.target.value) || 0; saveState(); render(); }
+    });
+    var inpHe100 = h('input', {
+      type: 'number', step: '0.5', min: '0', class: 'inp', placeholder: '0', value: w.he100Horas || '',
+      onchange: function (e) { w.he100Horas = parseFloat(e.target.value) || 0; saveState(); render(); }
+    });
+    var inpFeriado = h('input', {
+      type: 'number', step: '1', min: '0', max: '10', class: 'inp', placeholder: '0', value: w.feriadoDias || '',
+      onchange: function (e) { w.feriadoDias = parseInt(e.target.value, 10) || 0; saveState(); render(); }
+    });
+    var inpMeses13 = h('input', {
+      type: 'number', step: '1', min: '1', max: '12', class: 'inp', value: w.meses13 || 12,
+      onchange: function (e) { w.meses13 = Math.min(12, Math.max(1, parseInt(e.target.value, 10) || 12)); saveState(); render(); }
+    });
+    var selParc13 = h('select', {
+      class: 'inp',
+      onchange: function (e) { w.tipoParcela13 = e.target.value; saveState(); render(); }
+    },
+      h('option', { value: '1_parcela', selected: w.tipoParcela13 === '1_parcela', text: '1ª Parcela (50% sem desc.)' }),
+      h('option', { value: '2_parcela', selected: w.tipoParcela13 === '2_parcela', text: '2ª Parcela (líq. c/ INSS/IR)' }),
+      h('option', { value: 'integral', selected: w.tipoParcela13 === 'integral', text: 'Integral Líquido (12/12)' })
+    );
+
+    var btnAddExtras = h('button', {
+      type: 'button',
+      class: 'btn-sec',
+      text: '+ Lançar Extras/Feriado em ' + chipLabel(m),
+      onclick: function () {
+        if (res.totalExtrasFeriado <= 0) { alert('Preencha o Salário Base e as horas extras ou dias de feriado primeiro.'); return; }
+        m.entradas.push({
+          nome: 'Hora Extra + Feriado (' + res.he50Qtd + 'h 50% + ' + res.totalHoras100.toFixed(1) + 'h 100%)',
+          valor: Number(res.totalExtrasFeriado.toFixed(2))
+        });
+        recalculateAll(); saveState(); render();
+      }
+    });
+
+    var btnAdd13 = h('button', {
+      type: 'button',
+      class: 'btn-sec',
+      text: '+ Lançar 13º em ' + chipLabel(m),
+      onclick: function () {
+        if (res.decimoSelecionado <= 0) { alert('Preencha o Salário Base para calcular o 13º.'); return; }
+        var label13 = w.tipoParcela13 === '2_parcela' ? '13º Salário (2ª parcela líq.)' : (w.tipoParcela13 === 'integral' ? '13º Salário (Integral líq.)' : '13º Salário (1ª parcela 50%)');
+        m.entradas.push({
+          nome: label13 + ' (' + res.meses13 + '/12)',
+          valor: Number(res.decimoSelecionado.toFixed(2))
+        });
+        recalculateAll(); saveState(); render();
+      }
+    });
+
+    return h('section', { class: 'card' },
+      h('div', { class: 'card-head' },
+        h('h2', { text: 'Calculadora Trabalhista • Escala 5x2 (06:00–18:48)' }),
+        h('span', { class: 'sub', text: 'Hora normal: ' + fmt(res.valorHora) })
+      ),
+      h('div', { class: 'sim-controls' },
+        h('div', { class: 'field' }, h('label', { text: 'Salário Base (R$)' }), inpBase),
+        h('div', { class: 'field' }, h('label', { text: 'Regra / Divisor 5x2' }), selRegra),
+        h('div', { class: 'field' }, h('label', { text: 'Turno 06:00–18:48' }), selIntervalo),
+        h('div', { class: 'field' }, h('label', { text: 'Horas Extras 50% (h)' }), inpHe50),
+        h('div', { class: 'field' }, h('label', { text: 'Horas Extras 100% (h)' }), inpHe100),
+        h('div', { class: 'field' }, h('label', { text: 'Feriados Trabalhados (dias)' }), inpFeriado),
+        h('div', { class: 'field' }, h('label', { text: 'Meses Trab. (13º)' }), inpMeses13),
+        h('div', { class: 'field' }, h('label', { text: 'Parcela do 13º' }), selParc13)
+      ),
+      h('div', { class: 'grid-2' },
+        h('div', { class: 'box-info' },
+          h('h3', { text: 'Horas Extras & Feriados (5x2)' }),
+          h('div', { class: 'mini-row' }, h('span', { text: 'Turno líquido (06:00–18:48)' }), h('span', { text: formatHours(res.horasDiariasLiq) + ' / dia' })),
+          h('div', { class: 'mini-row' }, h('span', { text: 'Excedente diário acima de ' + formatHours(res.horasDiariasPadrao) }), h('span', { text: formatHours(res.excedenteDiarioHoras) + ' / dia' })),
+          h('div', { class: 'mini-row' }, h('span', { text: 'Horas Extras 50% (' + res.he50Qtd + 'h)' }), h('span', { text: fmt(res.valorHe50) })),
+          h('div', { class: 'mini-row' }, h('span', { text: 'Feriado + HE 100% (' + res.totalHoras100.toFixed(1) + 'h)' }), h('span', { text: fmt(res.valorHe100Feriado) })),
+          h('div', { class: 'mini-row total' }, h('span', { text: 'Total Extras + Feriado' }), h('span', { text: fmt(res.totalExtrasFeriado) }))
+        ),
+        h('div', { class: 'box-info' },
+          h('h3', { text: 'Décimo Terceiro (' + res.meses13 + '/12 avos)' }),
+          h('div', { class: 'mini-row' }, h('span', { text: '13º Bruto proporcional' }), h('span', { text: fmt(res.decimoBruto) })),
+          h('div', { class: 'mini-row' }, h('span', { text: '1ª Parcela (50% até 30/11)' }), h('span', { text: fmt(res.decimo1Parcela) })),
+          h('div', { class: 'mini-row' }, h('span', { text: '2ª Parcela líq. (até 20/12)' }), h('span', { text: fmt(res.decimo2Parcela) })),
+          h('div', { class: 'mini-row' }, h('span', { text: 'Total 13º Líquido no ano' }), h('span', { text: fmt(res.decimoIntegralLiq) })),
+          h('div', { class: 'mini-row total' }, h('span', { text: 'Valor selecionado p/ lançar' }), h('span', { text: fmt(res.decimoSelecionado) }))
+        )
+      ),
+      h('div', { class: 'btn-row' }, btnAddExtras, btnAdd13),
+      h('p', { class: 'note', text: 'Na escala 5x2 (06:00 às 18:48), cada dia de feriado trabalhado calcula o turno líquido em dobro (100%). Use os botões acima para jogar os valores direto nas Entradas do mês.' })
+    );
+  }
+
+  function reserve(m) {
+    var meta = Number(DATA.metaReserva) || 10000;
+    var pct = meta > 0 ? Math.min(100, Math.round(m.reserva / meta * 100)) : 0;
+    var bar = h('div', { class: 'bar', 'aria-hidden': 'true' }, h('span'));
+    bar.firstChild.style.width = pct + '%';
+
+    var inpAporte = h('input', {
+      type: 'number', step: '10', class: 'inp', style: 'width:125px;text-align:right;font-weight:600',
+      value: m.aporte,
+      onchange: function (e) {
+        m.aporte = parseFloat(e.target.value) || 0;
+        recalculateAll(); saveState(); render();
+      }
+    });
+
+    var inpMeta = h('input', {
+      type: 'number', step: '100', class: 'inp', style: 'width:125px;text-align:right;font-weight:600',
+      value: meta,
+      onchange: function (e) {
+        DATA.metaReserva = parseFloat(e.target.value) || 0;
+        saveState(); render();
+      }
+    });
+
+    return h('section', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h2', { text: 'Reserva de Emergência' }), h('span', { class: 'sub', text: pct + '% da meta' })),
+      bar,
+      h('div', { class: 'plain' }, h('span', { text: 'Guardar neste mês (editável)' }), inpAporte),
+      h('div', { class: 'plain' }, h('span', { text: 'Meta da reserva (editável)' }), inpMeta),
+      h('div', { class: 'plain' }, h('span', { text: 'Acumulado na reserva até este mês' }), h('span', { text: fmt(m.reserva) })),
+      h('div', { class: 'plain' }, h('span', { text: 'Patrimônio líquido (conta + reserva)' }), h('span', { text: fmt(m.total) })));
+  }
+
+  var NS = 'http://www.w3.org/2000/svg';
+  function s(tag, attrs, text) {
+    var e = document.createElementNS(NS, tag);
+    Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function niceStep(range) {
+    var raw = Math.max(range, 1000) / 4, pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    var c = [1, 2, 5, 10];
+    for (var i = 0; i < c.length; i++) if (c[i] * pow >= raw) return c[i] * pow;
+    return 10 * pow;
+  }
+  function tick(v) { return v === 0 ? '0' : (v / 1000).toLocaleString('pt-BR') + ' mil'; }
+  function chartCard(m) {
+    var months = DATA.months;
+    var W = 380, H = 195, pl = 52, pr = 14, pt = 12, pb = 24, n = months.length;
+    var all = [];
+    months.forEach(function (x) { all.push(x.saldo, x.reserva); });
+    var maxV = Math.max.apply(null, all), minV = Math.min(0, Math.min.apply(null, all));
+    var step = niceStep(maxV - minV);
+    var top = Math.ceil(maxV / step) * step, bot = Math.floor(minV / step) * step;
+    if (top === bot) top += step;
+    var X = function (i) { return n > 1 ? pl + i * (W - pl - pr) / (n - 1) : (W + pl - pr) / 2; };
+    var Y = function (v) { return pt + (top - v) * (H - pt - pb) / (top - bot); };
+    var svg = s('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart', role: 'img', 'aria-label': 'Evolução do saldo em conta e da reserva' });
+    for (var v = bot; v <= top + 0.001; v += step) {
+      svg.append(s('line', { x1: pl, x2: W - pr, y1: Y(v), y2: Y(v), class: Math.abs(v) < 0.01 ? 'zero' : 'grid' }));
+      svg.append(s('text', { x: pl - 6, y: Y(v) + 3.5, 'text-anchor': 'end' }, tick(v)));
+    }
+    var idxs = n <= 4 ? months.map(function (_, i) { return i; }) : [0, Math.floor(n / 3), Math.floor(2 * n / 3), n - 1];
+    idxs.forEach(function (i) { svg.append(s('text', { x: X(i), y: H - 6, 'text-anchor': 'middle' }, chipLabel(months[i]))); });
+    svg.append(s('line', { x1: X(sel), x2: X(sel), y1: pt, y2: H - pb, class: 'sel' }));
+    var pts = function (k) { return months.map(function (x, i) { return X(i).toFixed(1) + ',' + Y(x[k]).toFixed(1); }).join(' '); };
+    svg.append(s('polyline', { points: pts('saldo'), class: 'a' }));
+    svg.append(s('polyline', { points: pts('reserva'), class: 'b' }));
+    svg.append(s('circle', { cx: X(sel), cy: Y(m.saldo), r: 4.5, class: 'pa' }));
+    svg.append(s('circle', { cx: X(sel), cy: Y(m.reserva), r: 4.5, class: 'pb' }));
+    return h('section', { class: 'card' },
+      h('h2', { text: 'Evolução de Saldo e Reserva' }),
+      svg,
+      h('div', { class: 'legend' },
+        h('span', { class: 'a' }, h('i'), 'Saldo em conta: ' + fmt(m.saldo)),
+        h('span', { class: 'b' }, h('i'), 'Reserva: ' + fmt(m.reserva))),
+      h('p', { class: 'note', text: 'Conforme você preenche cada mês, o gráfico projeta a evolução acumulada.' }));
+  }
+
+  var nav = document.getElementById('months'), app = document.getElementById('app');
+
+  function rebuildChips() {
+    nav.replaceChildren();
+    DATA.months.forEach(function (m, i) {
+      nav.append(h('button', {
+        class: 'chip', type: 'button', id: 'chip-' + m.key,
+        onclick: function () { select(i, true); }
+      },
+        chipLabel(m),
+        m.saldo < 0 ? h('span', { class: 'dot', title: 'Saldo acumulado negativo' }) : null
+      ));
+    });
+    nav.append(h('button', {
+      class: 'chip-add', type: 'button', title: 'Adicionar próximo mês', text: '+ Mês',
+      onclick: addNextMonth
+    }));
+  }
+
+  function updateChips(scroll) {
+    DATA.months.forEach(function (m, i) {
+      var c = document.getElementById('chip-' + m.key);
+      if (!c) return;
+      if (i === sel) c.setAttribute('aria-current', 'true'); else c.removeAttribute('aria-current');
+      if (i === sel && scroll) c.scrollIntoView({ inline: 'center', block: 'nearest' });
+    });
+  }
+
+  function render() {
+    rebuildChips();
+    updateChips(false);
+    var m = DATA.months[sel];
+    var focusId = document.activeElement && document.activeElement.id;
+    app.replaceChildren(
+      hero(m, sel),
+      incomes(m, sel),
+      payables(m),
+      workCalcCard(m),
+      reserve(m),
+      chartCard(m)
+    );
+    if (focusId && focusId.indexOf('chk-') === 0) {
+      var f = document.getElementById(focusId);
+      if (f) f.focus({ preventScroll: true });
+    }
+  }
+
+  function select(i, setHash) {
+    sel = i;
+    render();
+    updateChips(true);
+    if (setHash) {
+      try { history.replaceState(null, '', '#' + DATA.months[i].key); } catch (e) { location.hash = DATA.months[i].key; }
+    }
+  }
+
+  var savedTheme = localStorage.getItem(THEME_KEY);
+  if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('btn-theme').addEventListener('click', function () {
+    var cur = document.documentElement.getAttribute('data-theme');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem(THEME_KEY, next);
+  });
+
+  document.getElementById('btn-export').addEventListener('click', function () {
+    var blob = new Blob([JSON.stringify({ data: DATA, paid: paid }, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'backup_minhas_financas_' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+  });
+
+  var fileImport = document.getElementById('file-import');
+  document.getElementById('btn-import').addEventListener('click', function () { fileImport.click(); });
+  fileImport.addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      try {
+        var parsed = JSON.parse(ev.target.result);
+        if (parsed && parsed.data && Array.isArray(parsed.data.months)) {
+          DATA = parsed.data;
+          if (parsed.paid) { paid = parsed.paid; savePaid(); }
+          recalculateAll(); saveState(); render();
+          alert('Backup importado com sucesso!');
+        } else {
+          alert('Arquivo inválido.');
+        }
+      } catch (err) {
+        alert('Erro ao ler o arquivo JSON.');
+      }
+      fileImport.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', function () {
+    if (confirm('Deseja apagar todos os lançamentos e zerar a planilha?')) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(PAID_KEY);
+      DATA = defaultState();
+      paid = {};
+      recalculateAll();
+      select(0, true);
+    }
+  });
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  }
+  var deferredPrompt = null;
+  var btnInstall = document.getElementById('btn-install');
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    btnInstall.style.display = 'inline-flex';
+  });
+  btnInstall.addEventListener('click', function () {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function () {
+      deferredPrompt = null;
+      btnInstall.style.display = 'none';
+    });
+  });
+
+  function fromHash() {
+    var k = location.hash.slice(1);
+    return DATA.months.findIndex(function (m) { return m.key === k; });
+  }
+
+  var start = fromHash();
+  if (start < 0) start = 0;
+  window.addEventListener('hashchange', function () { var i = fromHash(); if (i >= 0 && i !== sel) select(i, false); });
+  select(start, false);
+})();
+</script>
+</body>
+</html>

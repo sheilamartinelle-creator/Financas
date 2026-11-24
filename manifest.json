@@ -1,0 +1,25 @@
+{
+  "name": "Minhas Finanças — Controle Mensal",
+  "short_name": "Minhas Finanças",
+  "description": "Controle financeiro mês a mês editável com soma acumulada e reserva.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F2F5F4",
+  "theme_color": "#0D6B56",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
